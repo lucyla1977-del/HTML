@@ -114,24 +114,39 @@ white-space:pre-wrap;
 display:none;
 overflow:auto;
 }
-.shifts-counter{
-margin-top:15px;
-padding:10px;
-background:#0f172a;
-border-radius:8px;
-text-align:center;
-}
-.shifts-input{
-width:100%;
-padding:10px;
-font-size:16px;
-text-align:center;
-margin-top:10px;
-}
 .shifts-label{
 font-size:14px;
 color:#94a3b8;
-margin-bottom:8px;
+margin-bottom:12px;
+}
+.shifts-control{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:15px;
+margin-top:15px;
+}
+.shifts-btn{
+width:50px;
+height:50px;
+border:none;
+border-radius:8px;
+background:#334155;
+color:white;
+font-size:24px;
+cursor:pointer;
+transition: background 0.2s;
+-webkit-appearance: none;
+appearance: none;
+}
+.shifts-btn:active{
+background:#475569;
+}
+.shifts-display{
+font-size:24px;
+font-weight:bold;
+min-width:80px;
+text-align:center;
 }
 </style>
 </head>
@@ -155,9 +170,10 @@ margin-bottom:8px;
 
 <div class="card">
 <div class="shifts-label">כמה משמרות מומלץ?</div>
-<input type="range" id="shiftsCount" class="shifts-input" min="1" max="6" value="3">
-<div class="shifts-counter">
-<strong id="shiftsDisplay">3 משמרות</strong>
+<div class="shifts-control">
+<button type="button" class="shifts-btn" id="minusBtn">−</button>
+<div class="shifts-display" id="shiftsDisplay">3</div>
+<button type="button" class="shifts-btn" id="plusBtn">+</button>
 </div>
 </div>
 
@@ -172,11 +188,13 @@ margin-bottom:8px;
 (function init() {
   var days = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
   var state = {};
+  var shiftsCount = 3;
   var container = document.getElementById("daysContainer");
   var weekStartInput = document.getElementById("weekStart");
   var submitBtn = document.getElementById("submitBtn");
-  var shiftsCountInput = document.getElementById("shiftsCount");
   var shiftsDisplay = document.getElementById("shiftsDisplay");
+  var minusBtn = document.getElementById("minusBtn");
+  var plusBtn = document.getElementById("plusBtn");
 
   function formatDate(date) {
     return date.toLocaleDateString("he-IL", { year: "numeric", month: "2-digit", day: "2-digit" });
@@ -203,9 +221,7 @@ margin-bottom:8px;
   }
 
   function updateShiftsDisplay() {
-    var count = shiftsCountInput.value;
-    var text = count === "1" ? "1 משמרת" : count + " משמרות";
-    shiftsDisplay.textContent = text;
+    shiftsDisplay.textContent = shiftsCount;
   }
 
   function renderDays() {
@@ -275,8 +291,20 @@ margin-bottom:8px;
     });
   }
 
-  shiftsCountInput.addEventListener("input", function() {
-    updateShiftsDisplay();
+  minusBtn.addEventListener("click", function(e) {
+    e.preventDefault();
+    if (shiftsCount > 1) {
+      shiftsCount--;
+      updateShiftsDisplay();
+    }
+  });
+
+  plusBtn.addEventListener("click", function(e) {
+    e.preventDefault();
+    if (shiftsCount < 6) {
+      shiftsCount++;
+      updateShiftsDisplay();
+    }
   });
 
   weekStartInput.addEventListener("change", function() {
@@ -294,7 +322,7 @@ margin-bottom:8px;
     var data = {
       employee: nameInput,
       weekStart: weekStartInput.value,
-      recommendedShifts: parseInt(shiftsCountInput.value),
+      recommendedShifts: shiftsCount,
       availability: state
     };
     var result = document.getElementById("result");
