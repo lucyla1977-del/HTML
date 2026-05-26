@@ -114,6 +114,25 @@ white-space:pre-wrap;
 display:none;
 overflow:auto;
 }
+.shifts-counter{
+margin-top:15px;
+padding:10px;
+background:#0f172a;
+border-radius:8px;
+text-align:center;
+}
+.shifts-input{
+width:100%;
+padding:10px;
+font-size:16px;
+text-align:center;
+margin-top:10px;
+}
+.shifts-label{
+font-size:14px;
+color:#94a3b8;
+margin-bottom:8px;
+}
 </style>
 </head>
 <body>
@@ -134,6 +153,14 @@ overflow:auto;
 <input type="date" id="weekStart">
 </div>
 
+<div class="card">
+<div class="shifts-label">כמה משמרות מומלץ?</div>
+<input type="range" id="shiftsCount" class="shifts-input" min="1" max="6" value="3">
+<div class="shifts-counter">
+<strong id="shiftsDisplay">3 משמרות</strong>
+</div>
+</div>
+
 <div class="card" id="daysContainer"></div>
 
 <button type="button" class="submit-btn" id="submitBtn">שלח זמינות</button>
@@ -148,6 +175,8 @@ overflow:auto;
   var container = document.getElementById("daysContainer");
   var weekStartInput = document.getElementById("weekStart");
   var submitBtn = document.getElementById("submitBtn");
+  var shiftsCountInput = document.getElementById("shiftsCount");
+  var shiftsDisplay = document.getElementById("shiftsDisplay");
 
   function formatDate(date) {
     return date.toLocaleDateString("he-IL", { year: "numeric", month: "2-digit", day: "2-digit" });
@@ -171,6 +200,12 @@ overflow:auto;
       return new Date(parts[0], parts[1] - 1, parts[2]);
     }
     return getNextSunday();
+  }
+
+  function updateShiftsDisplay() {
+    var count = shiftsCountInput.value;
+    var text = count === "1" ? "1 משמרת" : count + " משמרות";
+    shiftsDisplay.textContent = text;
   }
 
   function renderDays() {
@@ -240,6 +275,10 @@ overflow:auto;
     });
   }
 
+  shiftsCountInput.addEventListener("input", function() {
+    updateShiftsDisplay();
+  });
+
   weekStartInput.addEventListener("change", function() {
     state = {};
     renderDays();
@@ -255,6 +294,7 @@ overflow:auto;
     var data = {
       employee: nameInput,
       weekStart: weekStartInput.value,
+      recommendedShifts: parseInt(shiftsCountInput.value),
       availability: state
     };
     var result = document.getElementById("result");
