@@ -1,233 +1,43 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>טופס זמינות שבועי</title>
-<style>
-body{margin:0;padding:12px;background:#0f172a;color:white;font-family:Arial,sans-serif}
-.container{max-width:700px;margin:auto}
-.header{text-align:center;margin-bottom:20px}
-.card{background:#1e293b;border-radius:14px;padding:16px;margin-bottom:14px}
-label{display:block;margin-bottom:8px}
-input,textarea{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:none;margin-top:8px;background:#111827;color:white;font-size:16px;outline:none}
-textarea{min-height:70px;resize:vertical}
-.day{background:#111827;border-radius:12px;padding:12px;margin-top:12px}
-.day-title{font-weight:bold;margin-bottom:10px;font-size:18px}
-.day-date{font-size:14px;color:#94a3b8;margin-bottom:10px}
-.buttons{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.shift-btn{flex:1 1 140px;min-height:48px;padding:14px;border:none;border-radius:10px;background:#334155;color:white;font-size:15px;cursor:pointer;transition:background 0.2s;-webkit-appearance:none;appearance:none}
-.shift-btn.active-morning{background:#f59e0b;color:black}
-.shift-btn.active-evening{background:#3b82f6;color:white}
-.submit-btn{width:100%;min-height:48px;padding:16px;border:none;border-radius:12px;background:#2563eb;color:white;font-size:18px;margin-top:20px;cursor:pointer;-webkit-appearance:none;appearance:none}
-.submit-btn:disabled{opacity:0.5}
-.result{margin-top:20px;background:#111827;padding:12px;border-radius:12px;white-space:pre-wrap;display:none;overflow:auto;font-size:12px;color:#94a3b8;direction:ltr;text-align:left}
-.shifts-counter{margin-top:15px;padding:10px;background:#0f172a;border-radius:8px;text-align:center}
-.shifts-input{width:100%;padding:10px;font-size:16px;text-align:center;margin-top:10px}
-.shifts-label{font-size:14px;color:#94a3b8;margin-bottom:8px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);padding:14px 28px;border-radius:12px;color:white;font-size:15px;font-weight:bold;z-index:999;max-width:90%;text-align:center;transition:transform 0.4s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 8px 30px rgba(0,0,0,.4)}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.general-notes{margin-top:12px}
-.general-notes label{color:#94a3b8;font-size:14px}
-</style>
-</head>
-<body>
-<div class="container">
-<div class="header">
-<h1>🔐 טופס זמינות שבועי</h1>
-<p>בחרו משמרות בלחיצה</p>
-</div>
+function doPost(e) {
+  var ss = SpreadsheetApp.openById("11MWKv3GAAJTtZUPvH0LVyjTU4PSAvggQ8Le04DLRRc8");
+  var data = JSON.parse(e.postData.contents);
+  var sheetName = data.Week_Start;
 
-<div class="card">
-<label for="employeeName">שם העובד</label>
-<input id="employeeName" type="text" placeholder="השם שלך" autocomplete="name">
-</div>
+  var startParts = sheetName.split("-");
+  var startDate = new Date(+startParts[0], +startParts[1] - 1, +startParts[2]);
 
-<div class="card">
-<label for="weekStart">תחילת שבוע</label>
-<input type="date" id="weekStart">
-</div>
-
-<div class="card">
-<div class="shifts-label">כמה משמרות תרצו השבוע?</div>
-<div style="display:flex;align-items:center;justify-content:center;gap:0;margin-top:10px">
-<button type="button" onclick="changeShifts(-1)" style="width:56px;height:56px;border:none;border-radius:10px 0 0 10px;background:#334155;color:#60a5fa;font-size:28px;font-weight:bold;cursor:pointer;-webkit-appearance:none">−</button>
-<div id="shiftsDisplay" style="width:70px;height:56px;background:#111827;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;border-top:none;border-bottom:none">3</div>
-<button type="button" onclick="changeShifts(1)" style="width:56px;height:56px;border:none;border-radius:0 10px 10px 0;background:#334155;color:#60a5fa;font-size:28px;font-weight:bold;cursor:pointer;-webkit-appearance:none">+</button>
-<span style="margin-right:14px;font-size:16px;color:#94a3b8">משמרות</span>
-</div>
-</div>
-
-<div class="card" id="daysContainer"></div>
-
-<div class="card general-notes">
-<label for="generalNotes">📝 הערות כלליות</label>
-<textarea id="generalNotes" placeholder="למשל: מעדיף בוקר אם אפשר..."></textarea>
-</div>
-
-<button type="button" class="submit-btn" id="submitBtn">שליחת זמינות ✨</button>
-<div class="result" id="result"></div>
-</div>
-<div class="toast" id="toast"></div>
-
-<script>
-// ====================================================
-var GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE";
-// ====================================================
-
-(function init(){
-  var days=["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
-  var daysEng=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  var shiftsCount=3;
-  var state={};
-  var container=document.getElementById("daysContainer");
-  var weekStartInput=document.getElementById("weekStart");
-  var submitBtn=document.getElementById("submitBtn");
-
-  window.changeShifts=function(d){
-    shiftsCount=Math.max(1,Math.min(6,shiftsCount+d));
-    document.getElementById("shiftsDisplay").textContent=shiftsCount;
-  };
-
-  function formatDate(date){return date.toLocaleDateString("he-IL",{year:"numeric",month:"2-digit",day:"2-digit"})}
-
-  function getNextSunday(){
-    var today=new Date(),dow=today.getDay(),d=(7-dow)%7;
-    if(d===0)d=7;
-    return new Date(today.getFullYear(),today.getMonth(),today.getDate()+d);
+  var dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var dayHeaders = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
+    dayHeaders.push(dayNames[i] + " " + String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear());
   }
 
-  function getStartDate(){
-    var v=weekStartInput.value;
-    if(v){var p=v.split("-").map(Number);return new Date(p[0],p[1]-1,p[2])}
-    return getNextSunday();
+  var headers = ["Employee_Name","Max_Shifts"].concat(dayHeaders).concat(["Notes"]);
+
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.getRange(1,1,1,headers.length).setValues([headers]);
+    sheet.getRange(1,1,1,headers.length).setFontWeight("bold");
+    sheet.setFrozenRows(1);
   }
 
-  function showToast(msg,color){
-    var t=document.getElementById("toast");
-    t.textContent=msg;t.style.background=color;
-    t.className="toast show";
-    setTimeout(function(){t.className="toast"},3500);
-  }
-
-  // Parse note to extract time override
-  // Examples: "מ-11" -> from 11:00, "עד 21" -> to 21:00, "מ-18" -> from 18:00
-  function parseTimeFromNote(note){
-    var result={fromOverride:null,toOverride:null};
-    if(!note)return result;
-    // Match "מ-" or "from " followed by time
-    var fromMatch=note.match(/(?:מ-?|from\s*|מהשעה\s*)(\d{1,2}(?:[:.]\d{2})?)/i);
-    if(fromMatch){
-      var t=fromMatch[1].replace(".",":"); 
-      if(t.indexOf(":")===-1)t+=":00";
-      result.fromOverride=t;
+  var lastRow = sheet.getLastRow();
+  var existingRow = -1;
+  if (lastRow > 1) {
+    var names = sheet.getRange(2,1,lastRow-1,1).getValues();
+    for (var i = 0; i < names.length; i++) {
+      if (names[i][0] === data.Employee_Name) { existingRow = i+2; break; }
     }
-    // Match "עד " or "to " or "until " followed by time
-    var toMatch=note.match(/(?:עד\s*|עד-?|to\s*|until\s*)(\d{1,2}(?:[:.]\d{2})?)/i);
-    if(toMatch){
-      var t2=toMatch[1].replace(".",":"); 
-      if(t2.indexOf(":")===-1)t2+=":00";
-      result.toOverride=t2;
-    }
-    return result;
   }
 
-  function buildDayValue(s){
-    // s = {morning, evening, note}
-    if(!s.morning && !s.evening) return "לא זמין";
+  var row = [data.Employee_Name, data.Max_Shifts];
+  for (var i = 0; i < 7; i++) row.push(data[dayNames[i]] || "");
+  row.push(data.Notes || "");
 
-    var from, to;
-    if(s.morning && s.evening){from="9:30";to="23:00"}
-    else if(s.morning){from="9:30";to="17:00"}
-    else{from="17:00";to="23:00"}
+  if (existingRow > 0) sheet.getRange(existingRow,1,1,row.length).setValues([row]);
+  else sheet.appendRow(row);
 
-    // Apply note overrides
-    var overrides=parseTimeFromNote(s.note);
-    if(overrides.fromOverride) from=overrides.fromOverride;
-    if(overrides.toOverride) to=overrides.toOverride;
-
-    return from+"-"+to;
-  }
-
-  function renderDays(){
-    container.innerHTML="";
-    var startDate=getStartDate();
-    days.forEach(function(day,index){
-      var currentDate=new Date(startDate.getFullYear(),startDate.getMonth(),startDate.getDate()+index);
-      if(!state[day])state[day]={morning:false,evening:false,note:""};
-      var div=document.createElement("div");div.className="day";
-      var title=document.createElement("div");title.className="day-title";title.textContent=day;
-      var dateDiv=document.createElement("div");dateDiv.className="day-date";dateDiv.textContent=formatDate(currentDate);
-      var buttons=document.createElement("div");buttons.className="buttons";
-      var morningBtn=document.createElement("button");morningBtn.type="button";
-      morningBtn.className="shift-btn morning-btn"+(state[day].morning?" active-morning":"");
-      morningBtn.textContent="☀️ בוקר 9:30-17:00";
-      var eveningBtn=document.createElement("button");eveningBtn.type="button";
-      eveningBtn.className="shift-btn evening-btn"+(state[day].evening?" active-evening":"");
-      eveningBtn.textContent="🌙 ערב 17:00-23:00";
-      var textarea=document.createElement("textarea");
-      textarea.placeholder="הערות ליום (למשל: יכול רק מ-11, צריך לצאת עד 21)";
-      textarea.value=state[day].note;
-      (function(d){
-        morningBtn.addEventListener("click",function(e){e.preventDefault();state[d].morning=!state[d].morning;morningBtn.className="shift-btn morning-btn"+(state[d].morning?" active-morning":"")});
-        eveningBtn.addEventListener("click",function(e){e.preventDefault();state[d].evening=!state[d].evening;eveningBtn.className="shift-btn evening-btn"+(state[d].evening?" active-evening":"")});
-        textarea.addEventListener("input",function(e){state[d].note=e.target.value});
-      })(day);
-      buttons.appendChild(morningBtn);buttons.appendChild(eveningBtn);
-      div.appendChild(title);div.appendChild(dateDiv);div.appendChild(buttons);div.appendChild(textarea);
-      container.appendChild(div);
-    });
-  }
-
-  weekStartInput.addEventListener("change",function(){state={};renderDays()});
-
-  submitBtn.addEventListener("click",function(e){
-    e.preventDefault();
-    var nameInput=document.getElementById("employeeName").value.trim();
-    if(!nameInput){
-      document.getElementById("employeeName").focus();
-      showToast("⚠️ אנא מלא את שם העובד","#ef4444");return;
-    }
-    var generalNotes=document.getElementById("generalNotes").value.trim();
-
-    // Build simple row: Employee_Name | Max_Shifts | Sun | Mon | ... | Sat | Notes
-    var row={
-      Week_Start:weekStartInput.value,
-      Employee_Name:nameInput,
-      Max_Shifts:shiftsCount
-    };
-
-    days.forEach(function(day,i){
-      var s=state[day]||{morning:false,evening:false,note:""};
-      row[daysEng[i]]=buildDayValue(s);
-    });
-
-    row.Notes=generalNotes;
-
-    // Show preview
-    var result=document.getElementById("result");
-    result.style.display="block";
-    result.textContent=JSON.stringify(row,null,2);
-
-    // Send
-    submitBtn.disabled=true;submitBtn.textContent="שולח... ⏳";
-    if(GOOGLE_SCRIPT_URL&&GOOGLE_SCRIPT_URL!=="https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6cca77Y71S10adJlbQ1jJ7h5PfK5YHfZWf9jGUpOw7n5cWn6xrh8qv/exec"){
-      fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(row)})
-      .then(function(){showToast("✅ הזמינות נשלחה בהצלחה!","#10b981")})
-      .catch(function(){showToast("❌ שגיאה בשליחה","#ef4444")})
-      .finally(function(){submitBtn.disabled=false;submitBtn.textContent="שליחת זמינות ✨"});
-    }else{
-      showToast("⚠️ לא הוגדר URL — נתונים למטה","#f59e0b");
-      submitBtn.disabled=false;submitBtn.textContent="שליחת זמינות ✨";
-    }
-  });
-
-  try{
-    var ns=getNextSunday();
-    weekStartInput.value=ns.getFullYear()+"-"+String(ns.getMonth()+1).padStart(2,"0")+"-"+String(ns.getDate()).padStart(2,"0");
-  }catch(e){}
-  renderDays();
-})();
-</script>
-</body>
-</html>
+  return ContentService.createTextOutput(JSON.stringify({status:"ok"})).setMimeType(ContentService.MimeType.JSON);
+}
