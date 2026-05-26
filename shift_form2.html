@@ -80,6 +80,8 @@ color:white;
 font-size:15px;
 cursor:pointer;
 transition: background 0.2s;
+-webkit-appearance: none;
+appearance: none;
 }
 .shift-btn.active-morning{
 background:#f59e0b;
@@ -100,6 +102,8 @@ color:white;
 font-size:18px;
 margin-top:20px;
 cursor:pointer;
+-webkit-appearance: none;
+appearance: none;
 }
 .result{
 margin-top:20px;
@@ -113,17 +117,6 @@ overflow:auto;
 </style>
 </head>
 <body>
-  <!-- הקוד של eruda כאן -->
-  <script>
-(function () {
-  var script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-  script.onload = function() { eruda.init(); };
-  document.head.appendChild(script);
-})();
-</script>
-
-  <!-- שאר התוכן שלך -->
 
 <div class="container">
 <div class="header">
@@ -149,103 +142,138 @@ overflow:auto;
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-const days = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
-let state = {};
-const container = document.getElementById("daysContainer");
-const weekStartInput = document.getElementById("weekStart");
-const submitBtn = document.getElementById("submitBtn");
+(function init() {
+  var days = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+  var state = {};
+  var container = document.getElementById("daysContainer");
+  var weekStartInput = document.getElementById("weekStart");
+  var submitBtn = document.getElementById("submitBtn");
 
-function formatDate(date){
-return date.toLocaleDateString("he-IL", { year: "numeric", month: "2-digit", day: "2-digit" });
-}
+  function formatDate(date) {
+    return date.toLocaleDateString("he-IL", { year: "numeric", month: "2-digit", day: "2-digit" });
+  }
 
-function getStartDate(){
-const startValue = weekStartInput.value;
-if (startValue) {
-const [y, m, d] = startValue.split("-").map(Number);
-return new Date(y, m - 1, d);
-}
-const now = new Date();
-return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
+  function getNextSunday() {
+    var today = new Date();
+    var dayOfWeek = today.getDay();
+    var daysUntilSunday = (0 - dayOfWeek + 7) % 7;
+    if (daysUntilSunday === 0) {
+      daysUntilSunday = 7;
+    }
+    var nextSunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysUntilSunday);
+    return nextSunday;
+  }
 
-function renderDays(){
-container.innerHTML = "";
-const startDate = getStartDate();
+  function getStartDate() {
+    var startValue = weekStartInput.value;
+    if (startValue) {
+      var parts = startValue.split("-").map(Number);
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return getNextSunday();
+  }
 
-days.forEach((day, index) => {
-const currentDate = new Date(startDate);
-currentDate.setDate(startDate.getDate() + index);
+  function renderDays() {
+    container.innerHTML = "";
+    var startDate = getStartDate();
 
-state[day] = state[day] || { morning: false, evening: false, note: "" };
+    days.forEach(function(day, index) {
+      var currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + index);
 
-const div = document.createElement("div");
-div.className = "day";
-div.innerHTML = `
-<div class="day-title">${day}</div>
-<div class="day-date">${formatDate(currentDate)}</div>
-<div class="buttons">
-<button type="button" class="shift-btn morning-btn ${state[day].morning ? 'active-morning' : ''}">☀️ בוקר</button>
-<button type="button" class="shift-btn evening-btn ${state[day].evening ? 'active-evening' : ''}">🌙 ערב</button>
-</div>
-<textarea placeholder="הערות">${state[day].note}</textarea>
-`;
+      if (!state[day]) {
+        state[day] = { morning: false, evening: false, note: "" };
+      }
 
-const morningBtn = div.querySelector(".morning-btn");
-const eveningBtn = div.querySelector(".evening-btn");
-const textarea = div.querySelector("textarea");
+      var div = document.createElement("div");
+      div.className = "day";
 
-morningBtn.addEventListener("click", (e) => {
-e.preventDefault();
-state[day].morning = !state[day].morning;
-morningBtn.classList.toggle("active-morning");
-});
+      var title = document.createElement("div");
+      title.className = "day-title";
+      title.textContent = day;
 
-eveningBtn.addEventListener("click", (e) => {
-e.preventDefault();
-state[day].evening = !state[day].evening;
-eveningBtn.classList.toggle("active-evening");
-});
+      var dateDiv = document.createElement("div");
+      dateDiv.className = "day-date";
+      dateDiv.textContent = formatDate(currentDate);
 
-textarea.addEventListener("input", (e) => {
-state[day].note = e.target.value;
-});
+      var buttons = document.createElement("div");
+      buttons.className = "buttons";
 
-container.appendChild(div);
-});
-}
+      var morningBtn = document.createElement("button");
+      morningBtn.type = "button";
+      morningBtn.className = "shift-btn morning-btn" + (state[day].morning ? " active-morning" : "");
+      morningBtn.textContent = "☀️ בוקר";
 
-weekStartInput.addEventListener("change", () => {
-state = {};
-renderDays();
-});
+      var eveningBtn = document.createElement("button");
+      eveningBtn.type = "button";
+      eveningBtn.className = "shift-btn evening-btn" + (state[day].evening ? " active-evening" : "");
+      eveningBtn.textContent = "🌙 ערב";
 
-submitBtn.addEventListener("click", (e) => {
-e.preventDefault();
-const nameInput = document.getElementById("employeeName").value.trim();
+      var textarea = document.createElement("textarea");
+      textarea.placeholder = "הערות";
+      textarea.value = state[day].note;
 
-if(!nameInput) {
-alert("אנא מלא את שם העובד");
-return;
-}
+      (function(d) {
+        morningBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          state[d].morning = !state[d].morning;
+          morningBtn.className = "shift-btn morning-btn" + (state[d].morning ? " active-morning" : "");
+        });
 
-const data = {
-employee: nameInput,
-weekStart: weekStartInput.value,
-availability: state
-};
+        eveningBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          state[d].evening = !state[d].evening;
+          eveningBtn.className = "shift-btn evening-btn" + (state[d].evening ? " active-evening" : "");
+        });
 
-const result = document.getElementById("result");
-result.style.display = "block";
-result.textContent = JSON.stringify(data, null, 2);
-alert("הזמינות נשמרה בהצלחה!");
-});
+        textarea.addEventListener("input", function(e) {
+          state[d].note = e.target.value;
+        });
+      })(day);
 
-const today = new Date();
-weekStartInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-renderDays();
-});
+      buttons.appendChild(morningBtn);
+      buttons.appendChild(eveningBtn);
+      div.appendChild(title);
+      div.appendChild(dateDiv);
+      div.appendChild(buttons);
+      div.appendChild(textarea);
+      container.appendChild(div);
+    });
+  }
+
+  weekStartInput.addEventListener("change", function() {
+    state = {};
+    renderDays();
+  });
+
+  submitBtn.addEventListener("click", function(e) {
+    e.preventDefault();
+    var nameInput = document.getElementById("employeeName").value.trim();
+    if (!nameInput) {
+      alert("אנא מלא את שם העובד");
+      return;
+    }
+    var data = {
+      employee: nameInput,
+      weekStart: weekStartInput.value,
+      availability: state
+    };
+    var result = document.getElementById("result");
+    result.style.display = "block";
+    result.textContent = JSON.stringify(data, null, 2);
+    alert("הזמינות נשמרה בהצלחה!");
+  });
+
+  // Set next Sunday's date
+  try {
+    var nextSunday = getNextSunday();
+    var y = nextSunday.getFullYear();
+    var m = String(nextSunday.getMonth() + 1).padStart(2, '0');
+    var d = String(nextSunday.getDate()).padStart(2, '0');
+    weekStartInput.value = y + "-" + m + "-" + d;
+  } catch(e) {}
+
+  renderDays();
+})();
 </script>
 
 </body>
