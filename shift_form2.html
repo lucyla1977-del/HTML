@@ -211,7 +211,7 @@ var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6c
 
     // Send
     submitBtn.disabled=true;submitBtn.textContent="שולח... ⏳";
-    if(GOOGLE_SCRIPT_URL&&GOOGLE_SCRIPT_URL!=="https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6cca77Y71S10adJlbQ1jJ7h5PfK5YHfZWf9jGUpOw7n5cWn6xrh8qv/exec"){
+    if(GOOGLE_SCRIPT_URL){
       fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(row)})
       .then(function(){showToast("✅ הזמינות נשלחה בהצלחה!","#10b981")})
       .catch(function(){showToast("❌ שגיאה בשליחה","#ef4444")})
