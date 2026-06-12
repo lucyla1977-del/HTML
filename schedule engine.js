@@ -6,6 +6,7 @@
  *      Engine respects it when possible, overrides only if no other way to fill shifts.
  *   2. Staff numbering — Staff #1 = fresher employee, Staff #2 = worked evening before.
  *   3. Bookings input — parallel "Event" type bookings add extra staff to that shift.
+ *   4. Flexible shift display — show shift name only if no time constraints, or include constraints if present
  */
 
 const employeeRows  = $('Get Employees').all().map(i => i.json);
@@ -315,6 +316,24 @@ function workedEveningBefore(emp, dateStr, assignments) {
   );
 }
 
+// FEATURE 4: Get display text for shift time based on availability constraints
+// If employee has NO time constraints (no availability entry): return just shift name
+// If employee HAS time constraints: return "shift name עד HH:MM" (in Hebrew: "until")
+function getShiftDisplay(emp, shift) {
+  const a = (availMap[emp.name] || {})[shift.date];
+  
+  if (!a) {
+    // No time constraints - return just the shift name
+    const hebShiftName = shift.shift === 'Morning' ? 'בוקר' : 'ערב';
+    return hebShiftName;
+  }
+  
+  // Has time constraints - return "shift name עד HH:MM"
+  const hebShiftName = shift.shift === 'Morning' ? 'בוקר' : 'ערב';
+  const untilTime = fromMinutes(a.toMins);
+  return `${hebShiftName} עד ${untilTime}`;
+}
+
 // ─────────────────────────────────────────────
 // 6. BUILD CANDIDATE LISTS
 // ─────────────────────────────────────────────
@@ -342,10 +361,14 @@ for (const shift of allShifts) {
     if (fixed && isAvailable(fixed, shift) && !isAlreadyAssignedToday(fixed, shift, finalAssignments)) {
       shift.assigned.push(fixed.name);
       fixed.shiftsThisWeek++;
+      
+      const shiftDisplay = getShiftDisplay(fixed, shift);
+      
       finalAssignments.push({
         day: shift.day, date: shift.date, shift: shift.shift,
         location: shift.location, employeeName: fixed.name,
         role: 'Staff #1',
+        shiftDisplay: shiftDisplay,
         from: fromMinutes(shift.fromMins),
         to: shift.isLastGame ? 'Last game' : fromMinutes(shift.toMins),
         estHours: shift.isLastGame ? '~6' : ((shift.toMins - shift.fromMins) / 60).toFixed(1),
@@ -387,12 +410,15 @@ for (const shift of allShifts) {
       const empTo = a ? Math.min(a.toMins, shiftTo) : shiftTo;
       const est = Math.max((empTo - shift.fromMins) / 60, 3).toFixed(1);
 
+      const shiftDisplay = getShiftDisplay(emp, shift);
+
       // FEATURE 2: role number — worked evening before = higher number
       // Will be recalculated after all assignments (see step 8)
       finalAssignments.push({
         day: shift.day, date: shift.date, shift: shift.shift,
         location: shift.location, employeeName: emp.name,
         role: 'Staff', // placeholder — numbered in step 8
+        shiftDisplay: shiftDisplay,
         from: fromMinutes(shift.fromMins),
         to: shift.isLastGame ? 'Last game' : fromMinutes(empTo),
         estHours: est, eventPrep: 'No',
@@ -413,6 +439,7 @@ for (const shift of allShifts) {
         day: shift.day, date: shift.date, shift: shift.shift,
         location: shift.location, employeeName: 'TBD',
         role: `Staff #${shift.assigned.length + i + 1}`,
+        shiftDisplay: shift.shift === 'Morning' ? 'בוקר' : 'ערב',
         from: fromMinutes(shift.fromMins),
         to: shift.isLastGame ? 'Last game' : fromMinutes(shift.toMins),
         estHours: '?', eventPrep: 'No',
@@ -486,7 +513,7 @@ Object.entries(byDay).forEach(([dayKey, entries]) => {
   summaryText += `━━━ ${dayKey} ━━━\n`;
   entries.forEach(e => {
     const flag = e.flag ? ` ${e.flag}` : '';
-    summaryText += `  [L${e.location}] ${e.shift}: ${e.employeeName} (${e.role}, ${e.from}–${e.to}, ~${e.estHours}h)${flag}\n`;
+    summaryText += `  [L${e.location}] ${e.shiftDisplay}: ${e.employeeName} (${e.role})${flag}\n`;
   });
   summaryText += '\n';
 });
