@@ -167,7 +167,7 @@ var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6c
       eveningBtn.className="shift-btn evening-btn"+(state[day].evening?" active-evening":"");
       eveningBtn.textContent="🌙 ערב ";
       var textarea=document.createElement("textarea");
-      textarea.placeholder="הערות ליום (למשל: עד 22)";
+      textarea.placeholder="הערות ";
       textarea.value=state[day].note;
       (function(d){
         morningBtn.addEventListener("click",function(e){e.preventDefault();state[d].morning=!state[d].morning;morningBtn.className="shift-btn morning-btn"+(state[d].morning?" active-morning":"")});
