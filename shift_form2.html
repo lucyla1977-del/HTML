@@ -226,6 +226,62 @@ text-align:center;
     return getNextSunday();
   }
 
+  function parseTimeConstraints(note) {
+    var result = { fromTime: null, toTime: null };
+    if (!note) return result;
+    
+    // Match "עד HH:MM" or "עד HH" or "עד-HH"
+    var toMatch = note.match(/עד\s*-?(\d{1,2})(?::(\d{2}))?/);
+    if (toMatch) {
+      var hours = toMatch[1];
+      var minutes = toMatch[2] || "00";
+      result.toTime = hours + ":" + minutes;
+    }
+    
+    // Match "מ-HH:MM" or "מ-HH" or "מ HH"
+    var fromMatch = note.match(/מ\s*-?(\d{1,2})(?::(\d{2}))?/);
+    if (fromMatch) {
+      var hours = fromMatch[1];
+      var minutes = fromMatch[2] || "00";
+      result.fromTime = hours + ":" + minutes;
+    }
+    
+    return result;
+  }
+
+  function buildDayOutput(dayState) {
+    // dayState = { morning: bool, evening: bool, note: string }
+    if (!dayState.morning && !dayState.evening) {
+      return "לא זמין";
+    }
+    
+    var timeConstraints = parseTimeConstraints(dayState.note);
+    var shifts = [];
+    
+    if (dayState.morning) {
+      shifts.push("בוקר");
+    }
+    if (dayState.evening) {
+      shifts.push("ערב");
+    }
+    
+    var output = shifts.join(" ");
+    
+    // Add time constraints if they exist
+    if (timeConstraints.fromTime || timeConstraints.toTime) {
+      output += " ";
+      if (timeConstraints.fromTime) {
+        output += "מ-" + timeConstraints.fromTime;
+      }
+      if (timeConstraints.toTime) {
+        if (timeConstraints.fromTime) output += " ";
+        output += "עד " + timeConstraints.toTime;
+      }
+    }
+    
+    return output.trim();
+  }
+
   function updateShiftsDisplay() {
     shiftsDisplay.textContent = shiftsCount;
   }
@@ -266,7 +322,7 @@ text-align:center;
       eveningBtn.textContent = "🌙 ערב";
 
       var textarea = document.createElement("textarea");
-      textarea.placeholder = "הערות";
+      textarea.placeholder = "הערות (למשל: עד 22:00 או מ-18)";
       textarea.value = state[day].note;
 
       (function(d) {
@@ -325,12 +381,20 @@ text-align:center;
       alert("אנא מלא את שם העובד");
       return;
     }
+    
     var data = {
       employee: nameInput,
       weekStart: weekStartInput.value,
       recommendedShifts: shiftsCount,
-      availability: state
+      availability: {}
     };
+    
+    // Build formatted output for each day
+    days.forEach(function(day) {
+      var dayState = state[day] || { morning: false, evening: false, note: "" };
+      data.availability[day] = buildDayOutput(dayState);
+    });
+    
     var result = document.getElementById("result");
     result.style.display = "block";
     result.textContent = JSON.stringify(data, null, 2);
