@@ -17,6 +17,7 @@ textarea{min-height:70px;resize:vertical}
 .day-date{font-size:14px;color:#94a3b8;margin-bottom:10px}
 .buttons{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .shift-btn{flex:1 1 140px;min-height:48px;padding:14px;border:none;border-radius:10px;background:#334155;color:white;font-size:15px;cursor:pointer;transition:background 0.2s;-webkit-appearance:none;appearance:none}
+.shift-btn:hover{background:#475569}
 .shift-btn.active-morning{background:#f59e0b;color:black}
 .shift-btn.active-evening{background:#3b82f6;color:white}
 .submit-btn{width:100%;min-height:48px;padding:16px;border:none;border-radius:12px;background:#2563eb;color:white;font-size:18px;margin-top:20px;cursor:pointer;-webkit-appearance:none;appearance:none}
@@ -25,7 +26,7 @@ textarea{min-height:70px;resize:vertical}
 .shifts-counter{margin-top:15px;padding:10px;background:#0f172a;border-radius:8px;text-align:center}
 .shifts-input{width:100%;padding:10px;font-size:16px;text-align:center;margin-top:10px}
 .shifts-label{font-size:14px;color:#94a3b8;margin-bottom:8px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);padding:14px 28px;border-radius:12px;color:white;font-size:15px;font-weight:bold;z-index:999;max-width:90%;text-align:center;transition:transform 0.4s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);padding:14px 28px;border-radius:12px;color:white;font-size:15px;font-weight:bold;z-index:999;max-width:90%;text-align:center}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .general-notes{margin-top:12px}
 .general-notes label{color:#94a3b8;font-size:14px}
@@ -110,43 +111,43 @@ var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6c
     setTimeout(function(){t.className="toast"},3500);
   }
 
-  // Parse note to extract time override
-  // Examples: "מ-11" -> from 11:00, "עד 21" -> to 21:00, "מ-18" -> from 18:00
+  // Parse note to extract time constraint
+  // Examples: "עד 22" -> "עד 22:00", "מ-11" -> not used in text output
   function parseTimeFromNote(note){
-    var result={fromOverride:null,toOverride:null};
-    if(!note)return result;
-    // Match "מ-" or "from " followed by time
-    var fromMatch=note.match(/(?:מ-?|from\s*|מהשעה\s*)(\d{1,2}(?:[:.]\d{2})?)/i);
-    if(fromMatch){
-      var t=fromMatch[1].replace(".",":"); 
-      if(t.indexOf(":")===-1)t+=":00";
-      result.fromOverride=t;
-    }
-    // Match "עד " or "to " or "until " followed by time
-    var toMatch=note.match(/(?:עד\s*|עד-?|to\s*|until\s*)(\d{1,2}(?:[:.]\d{2})?)/i);
+    if(!note)return null;
+    // Match "עד " or "עד-" followed by time
+    var toMatch=note.match(/(?:עד\s*|עד-?)(\d{1,2}(?:[:.]\d{2})?)/i);
     if(toMatch){
-      var t2=toMatch[1].replace(".",":"); 
-      if(t2.indexOf(":")===-1)t2+=":00";
-      result.toOverride=t2;
+      var t=toMatch[1].replace(".",":"); 
+      if(t.indexOf(":")===-1)t+=":00";
+      return "עד "+t;
     }
-    return result;
+    return null;
   }
 
   function buildDayValue(s){
     // s = {morning, evening, note}
     if(!s.morning && !s.evening) return "לא זמין";
 
-    var from, to;
-    if(s.morning && s.evening){from="9:30";to="23:00"}
-    else if(s.morning){from="9:30";to="17:00"}
-    else{from="17:00";to="23:00"}
+    var result = "";
+    
+    if(s.morning && s.evening){
+      result = "בוקר ערב";
+    }
+    else if(s.morning){
+      result = "בוקר";
+    }
+    else{
+      result = "ערב";
+    }
 
-    // Apply note overrides
-    var overrides=parseTimeFromNote(s.note);
-    if(overrides.fromOverride) from=overrides.fromOverride;
-    if(overrides.toOverride) to=overrides.toOverride;
+    // Add time constraint from note if exists
+    var timeConstraint = parseTimeFromNote(s.note);
+    if(timeConstraint){
+      result += " " + timeConstraint;
+    }
 
-    return from+"-"+to;
+    return result;
   }
 
   function renderDays(){
@@ -166,8 +167,7 @@ var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6c
       eveningBtn.className="shift-btn evening-btn"+(state[day].evening?" active-evening":"");
       eveningBtn.textContent="🌙 ערב ";
       var textarea=document.createElement("textarea");
-      textarea.placeholder="הערות ליום (למשל: יכול רק מ-11, צריך לצאת עד 21)";
-      textarea.placeholder="הערות ";
+      textarea.placeholder="הערות ליום (למשל: עד 22)";
       textarea.value=state[day].note;
       (function(d){
         morningBtn.addEventListener("click",function(e){e.preventDefault();state[d].morning=!state[d].morning;morningBtn.className="shift-btn morning-btn"+(state[d].morning?" active-morning":"")});
