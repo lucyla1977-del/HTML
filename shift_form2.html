@@ -26,7 +26,7 @@ textarea{min-height:70px;resize:vertical}
 .shifts-counter{margin-top:15px;padding:10px;background:#0f172a;border-radius:8px;text-align:center}
 .shifts-input{width:100%;padding:10px;font-size:16px;text-align:center;margin-top:10px}
 .shifts-label{font-size:14px;color:#94a3b8;margin-bottom:8px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);padding:14px 28px;border-radius:12px;color:white;font-size:15px;font-weight:bold;z-index:999;max-width:90%;text-align:center}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);padding:14px 28px;border-radius:12px;color:white;font-size:15px;font-weight:bold;z-index:999;max-width:90%;text-align:center;transition:transform 0.3s}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .general-notes{margin-top:12px}
 .general-notes label{color:#94a3b8;font-size:14px}
@@ -112,7 +112,7 @@ var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6c
   }
 
   // Parse note to extract time constraint
-  // Examples: "עד 22" -> "עד 22:00", "מ-11" -> not used in text output
+  // Examples: "עד 22" -> "עד 22:00", "מ-11" -> "מ11:00", "מ 10:00" -> "מ10:00"
   function parseTimeFromNote(note){
     if(!note)return null;
     // Match "עד " or "עד-" followed by time
@@ -121,6 +121,13 @@ var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqNpcZK5AlNh6c
       var t=toMatch[1].replace(".",":"); 
       if(t.indexOf(":")===-1)t+=":00";
       return "עד "+t;
+    }
+    // Match "מ " or "מ-" followed by time
+    var fromMatch=note.match(/(?:מ\s*|מ-?)(\d{1,2}(?:[:.]\d{2})?)/i);
+    if(fromMatch){
+      var t=fromMatch[1].replace(".",":"); 
+      if(t.indexOf(":")===-1)t+=":00";
+      return "מ"+t;
     }
     return null;
   }
