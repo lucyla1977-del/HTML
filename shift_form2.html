@@ -203,11 +203,17 @@ text-align:center;
   function getNextSunday() {
     var today = new Date();
     var dayOfWeek = today.getDay();
-    var daysUntilSunday = (0 - dayOfWeek + 7) % 7;
-    if (daysUntilSunday === 0) {
-      daysUntilSunday = 7;
+    var daysToAdd;
+    
+    if (dayOfWeek === 0) {
+      // Today is Sunday, so next Sunday is 7 days away
+      daysToAdd = 7;
+    } else {
+      // Calculate days until next Sunday (0)
+      daysToAdd = 7 - dayOfWeek;
     }
-    var nextSunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysUntilSunday);
+    
+    var nextSunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysToAdd);
     return nextSunday;
   }
 
